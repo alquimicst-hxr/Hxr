@@ -1,7 +1,7 @@
 # HaxorGPT Luna 7.1
 
 Bot de Telegram com IA (Python 3.11+, `python-telegram-bot` assíncrono, SQLite). Planos com cota, painel
-administrativo dentro do Telegram, grupos/tópicos de fórum e vários provedores de IA configuráveis.
+administrativo dentro do Telegram, grupos/tópicos de fórum e vários provedores de IA configuráveis. A melhor inteligência artigivial ja criada!
 
 ## Estado de verificação (leia antes de implantar)
 Desenvolvido em ambiente **sem rede e sem pytest/python-telegram-bot/httpx instalados**. Portanto:
