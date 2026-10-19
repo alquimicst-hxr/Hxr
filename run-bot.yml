@@ -1,0 +1,67 @@
+# Executa o bot no GitHub Actions (melhor esforço; veja README "GitHub").
+# Limites: cada job dura no máximo ~6h; o banco é restaurado/salvo via cache do Actions.
+name: Run bot
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */6 * * *"
+permissions:
+  contents: read
+  actions: write   # necessário para salvar/limpar cache
+concurrency:
+  group: haxorgpt-bot          # uma única instância (evita conflito de polling do Telegram)
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      OWNER_TELEGRAM_ID: ${{ secrets.OWNER_TELEGRAM_ID }}
+      ADMIN_TELEGRAM_IDS: ${{ secrets.ADMIN_TELEGRAM_IDS }}
+      SUPPORT_USERNAME: ${{ vars.SUPPORT_USERNAME }}
+      DEFAULT_PROVIDER: ${{ vars.DEFAULT_PROVIDER }}
+      DEFAULT_MODEL: ${{ vars.DEFAULT_MODEL }}
+      FALLBACK_PROVIDER: ${{ vars.FALLBACK_PROVIDER }}
+      FALLBACK_MODEL: ${{ vars.FALLBACK_MODEL }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+      FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+      CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+      XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+      HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+      INFERENCE_NET_API_KEY: ${{ secrets.INFERENCE_NET_API_KEY }}
+      DATABASE_PATH: data/haxorgpt.db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Restaurar banco
+        uses: actions/cache/restore@v4
+        with:
+          path: data/backup.db
+          key: haxorgpt-db-${{ github.run_id }}
+          restore-keys: haxorgpt-db-
+      - name: Aplicar backup (se existir)
+        run: |
+          mkdir -p data
+          if [ -f data/backup.db ]; then cp data/backup.db data/haxorgpt.db; fi
+      - name: Executar bot (encerra antes do limite do job)
+        run: timeout --signal=INT 345m python main.py || [ $? -eq 124 ] || [ $? -eq 130 ]
+      - name: Backup consistente do banco
+        if: always()
+        run: |
+          sqlite3 data/haxorgpt.db ".backup 'data/backup.db'"
+      - name: Salvar banco
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/backup.db
+          key: haxorgpt-db-${{ github.run_id }}

@@ -1,0 +1,7 @@
+# Versões compatíveis entre si (python-telegram-bot 21.x exige httpx ~=0.27).
+# NÃO foi possível instalar/validar estas versões no ambiente de desenvolvimento (sem rede).
+python-telegram-bot>=21.6,<22
+httpx>=0.27,<0.28
+python-dotenv>=1.0,<2
+# desenvolvimento / testes
+pytest>=8.0,<9
